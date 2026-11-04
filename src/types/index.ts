@@ -26,6 +26,10 @@ export interface TripBookingItem {
   notes: string;
   passId?: string; // Connected pass ID in Digital Wallet
   attachment?: EncryptedDocumentAttachment; // Uploaded voucher / PDF / screenshot
+  nightsCount?: number; // Number of nights if multi-night combined stay
+  checkOutDate?: string; // Check-out date (e.g. "2027-02-08")
+  mergedDayNumbers?: number[]; // Day numbers covered by this stay (e.g. [1, 2])
+  mergedItemIds?: string[]; // IDs of constituent nightly bookings if combined
 }
 
 export type PassType = 'boarding_pass' | 'hotel_reservation' | 'activity_ticket' | 'train_ticket' | 'secure_document';

@@ -77,6 +77,11 @@ interface TripContextType {
   preTravelProgress: { completed: number; total: number; percent: number };
   dailyProgress: { completed: number; total: number; percent: number };
 
+  // Stay Combination & Hotel Sync Actions
+  combineStays: (stayIds: string[], customTitle?: string, customLocation?: string) => void;
+  splitStay: (combinedStayId: string) => void;
+  updateHotelDetails: (stayId: string, newTitle: string, newLocation: string) => void;
+
   // Security
   setupPin: (pin: string) => Promise<void>;
   unlockVault: (pin: string) => Promise<boolean>;
@@ -566,6 +571,232 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setBookings(prev => prev.filter(b => b.id !== id));
   };
 
+  // Combine multiple stay items into a single consolidated multi-night booking
+  const combineStays = (stayIds: string[], customTitle?: string, customLocation?: string) => {
+    if (stayIds.length < 2) return;
+
+    const itemsToMerge = bookings
+      .filter(b => stayIds.includes(b.id) && b.category === 'stay')
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    if (itemsToMerge.length < 2) return;
+
+    const totalPlanned = itemsToMerge.reduce((sum, b) => sum + b.plannedCostINR, 0);
+    const hasBooked = itemsToMerge.some(b => b.bookedCostINR !== null);
+    const totalBooked = hasBooked 
+      ? itemsToMerge.reduce((sum, b) => sum + (b.bookedCostINR ?? b.plannedCostINR), 0) 
+      : null;
+    const hasBookedOrig = itemsToMerge.some(b => b.bookedCostOriginal !== null);
+    const totalBookedOrig = hasBookedOrig 
+      ? itemsToMerge.reduce((sum, b) => sum + (b.bookedCostOriginal ?? 0), 0) 
+      : null;
+
+    const totalNights = itemsToMerge.reduce((sum, b) => sum + (b.nightsCount || 1), 0);
+    const firstItem = itemsToMerge[0];
+    const lastItem = itemsToMerge[itemsToMerge.length - 1];
+
+    const lastDate = new Date(lastItem.date);
+    lastDate.setDate(lastDate.getDate() + (lastItem.nightsCount || 1));
+    const checkOutDate = lastDate.toISOString().slice(0, 10);
+
+    // Collect all covered day numbers & constituent IDs
+    const allDays = Array.from(new Set(itemsToMerge.flatMap(b => b.mergedDayNumbers || [b.dayNumber]))).sort((a, b) => a - b);
+    const allConstituentIds = Array.from(new Set(itemsToMerge.flatMap(b => b.mergedItemIds || [b.id])));
+
+    // Determine clean base hotel name
+    const rawName = customTitle || firstItem.title;
+    const baseHotelName = rawName.replace(/\s*\((?:Night\s*\d+|2\s*Nights|3\s*Nights|\d+\s*Nights)[^)]*\)/i, '').trim();
+    const finalTitle = `${baseHotelName} (${totalNights} Nights)`;
+    const finalLocation = customLocation || firstItem.location;
+
+    // Pick earliest cancellation deadline
+    const deadlines = itemsToMerge
+      .filter(b => b.cancellationDeadline)
+      .map(b => b.cancellationDeadline!)
+      .sort();
+    const finalDeadline = deadlines[0] || firstItem.cancellationDeadline;
+
+    // Check refundability
+    const isRef = itemsToMerge.every(b => b.isRefundable);
+
+    const combinedId = `combined-stay-${Date.now()}`;
+    const combinedItem: TripBookingItem = {
+      ...firstItem,
+      id: combinedId,
+      date: firstItem.date,
+      dayNumber: firstItem.dayNumber,
+      title: finalTitle,
+      location: finalLocation,
+      details: `${totalNights}-night consolidated hotel stay in ${finalLocation.split(',')[0]} (Check-in ${firstItem.date}, Check-out ${checkOutDate}).`,
+      plannedCostINR: totalPlanned,
+      bookedCostINR: totalBooked,
+      bookedCostOriginal: totalBookedOrig,
+      bookedCurrency: firstItem.bookedCurrency,
+      bookingStatus: itemsToMerge.every(b => b.bookingStatus === 'confirmed') ? 'confirmed' : (itemsToMerge.some(b => b.bookingStatus === 'reserved') ? 'reserved' : firstItem.bookingStatus),
+      provider: firstItem.provider,
+      confirmationNumber: firstItem.confirmationNumber || itemsToMerge.find(b => b.confirmationNumber)?.confirmationNumber || '',
+      cancellationDeadline: finalDeadline,
+      isRefundable: isRef,
+      refundPolicy: firstItem.refundPolicy,
+      cancellationFeeINR: isRef ? 0 : (totalBooked ?? totalPlanned),
+      nightsCount: totalNights,
+      checkOutDate,
+      mergedDayNumbers: allDays,
+      mergedItemIds: allConstituentIds,
+    };
+
+    // Update bookings
+    setBookings(prev => [combinedItem, ...prev.filter(b => !stayIds.includes(b.id))]);
+
+    // Update DayItineraries: replace old itemIds with combinedId across all covered days
+    setItineraries(prev => prev.map(day => {
+      const containsOld = day.itemIds && day.itemIds.some(id => stayIds.includes(id) || allConstituentIds.includes(id));
+      if (containsOld || allDays.includes(day.dayNumber)) {
+        const remaining = (day.itemIds || []).filter(id => !stayIds.includes(id) && !allConstituentIds.includes(id));
+        return {
+          ...day,
+          itemIds: Array.from(new Set([...remaining, combinedId])),
+        };
+      }
+      return day;
+    }));
+
+    // Update linked pass if present
+    if (combinedItem.passId) {
+      setPasses(prev => prev.map(p => {
+        if (p.id === combinedItem.passId) {
+          return {
+            ...p,
+            title: baseHotelName,
+            location: finalLocation,
+            date: `${firstItem.date} - ${checkOutDate}`,
+          };
+        }
+        return p;
+      }));
+    }
+  };
+
+  // Split a combined stay back into individual night stays
+  const splitStay = (combinedStayId: string) => {
+    const combinedItem = bookings.find(b => b.id === combinedStayId);
+    if (!combinedItem || !combinedItem.mergedItemIds || combinedItem.mergedItemIds.length === 0) return;
+
+    const constituentIds = combinedItem.mergedItemIds;
+    const baseHotelName = combinedItem.title.replace(/\s*\((?:Night\s*\d+|2\s*Nights|3\s*Nights|\d+\s*Nights)[^)]*\)/i, '').trim();
+
+    // Reconstruct individual night items
+    const restoredItems: TripBookingItem[] = constituentIds.map((cId, idx) => {
+      const seedMatch = INITIAL_BOOKINGS.find(b => b.id === cId);
+      if (seedMatch) {
+        return {
+          ...seedMatch,
+          // Preserve any user-edited hotel name or location
+          title: `${baseHotelName} (Night ${idx + 1})`,
+          location: combinedItem.location || seedMatch.location,
+          provider: combinedItem.provider || seedMatch.provider,
+          confirmationNumber: combinedItem.confirmationNumber || seedMatch.confirmationNumber,
+          bookingStatus: combinedItem.bookingStatus || seedMatch.bookingStatus,
+          isRefundable: combinedItem.isRefundable,
+          cancellationDeadline: combinedItem.cancellationDeadline || seedMatch.cancellationDeadline,
+        };
+      }
+
+      // If it was a custom stay, divide costs and calculate date
+      const nightDate = new Date(combinedItem.date);
+      nightDate.setDate(nightDate.getDate() + idx);
+      const dateStr = nightDate.toISOString().slice(0, 10);
+      const count = constituentIds.length;
+
+      return {
+        ...combinedItem,
+        id: cId,
+        date: dateStr,
+        dayNumber: (combinedItem.mergedDayNumbers && combinedItem.mergedDayNumbers[idx]) || (combinedItem.dayNumber + idx),
+        title: `${baseHotelName} (Night ${idx + 1})`,
+        plannedCostINR: Math.round(combinedItem.plannedCostINR / count),
+        bookedCostINR: combinedItem.bookedCostINR !== null ? Math.round(combinedItem.bookedCostINR / count) : null,
+        bookedCostOriginal: combinedItem.bookedCostOriginal !== null ? Math.round(combinedItem.bookedCostOriginal / count) : null,
+        nightsCount: 1,
+        checkOutDate: undefined,
+        mergedDayNumbers: undefined,
+        mergedItemIds: undefined,
+      };
+    });
+
+    // Update bookings
+    setBookings(prev => [
+      ...restoredItems,
+      ...prev.filter(b => b.id !== combinedStayId)
+    ]);
+
+    // Restore DayItineraries: replace combinedId with specific constituent IDs
+    setItineraries(prev => prev.map(day => {
+      if (day.itemIds && day.itemIds.includes(combinedStayId)) {
+        const remaining = day.itemIds.filter(id => id !== combinedStayId);
+        const matchingItem = restoredItems.find(item => item.dayNumber === day.dayNumber);
+        const newIds = matchingItem ? [...remaining, matchingItem.id] : remaining;
+        return {
+          ...day,
+          itemIds: Array.from(new Set(newIds)),
+        };
+      }
+      return day;
+    }));
+  };
+
+  // Update hotel name and location with global synchronization
+  const updateHotelDetails = (stayId: string, newTitle: string, newLocation: string) => {
+    const targetStay = bookings.find(b => b.id === stayId);
+    if (!targetStay) return;
+
+    const baseCleanTitle = newTitle.replace(/\s*\((?:Night\s*\d+|2\s*Nights|3\s*Nights|\d+\s*Nights)[^)]*\)/i, '').trim();
+
+    setBookings(prev => prev.map(b => {
+      if (b.id === stayId) {
+        const titleSuffix = b.nightsCount && b.nightsCount > 1 
+          ? ` (${b.nightsCount} Nights)` 
+          : (b.title.match(/\(Night\s*\d+\)/i)?.[0] ? ` ${b.title.match(/\(Night\s*\d+\)/i)![0]}` : '');
+        return {
+          ...b,
+          title: titleSuffix ? `${baseCleanTitle}${titleSuffix}` : newTitle,
+          location: newLocation,
+        };
+      }
+
+      // If it shares the same confirmation number or same hotel property
+      if (
+        b.category === 'stay' && 
+        ((targetStay.confirmationNumber && b.confirmationNumber === targetStay.confirmationNumber) ||
+         b.title.toLowerCase().includes(targetStay.title.toLowerCase().slice(0, 12)))
+      ) {
+        const titleSuffix = b.title.match(/\(Night\s*\d+\)/i)?.[0] || '';
+        return {
+          ...b,
+          title: titleSuffix ? `${baseCleanTitle} ${titleSuffix}` : baseCleanTitle,
+          location: newLocation,
+        };
+      }
+
+      return b;
+    }));
+
+    // Update connected wallet passes
+    setPasses(prev => prev.map(p => {
+      if (
+        (targetStay.passId && p.id === targetStay.passId) ||
+        (targetStay.confirmationNumber && p.bookingReference === targetStay.confirmationNumber)
+      ) {
+        return {
+          ...p,
+          title: baseCleanTitle,
+          location: newLocation,
+        };
+      }
+      return p;
+    }));
+  };
+
   const updatePass = (pass: DigitalPass) => {
     setPasses(prev => prev.map(p => (p.id === pass.id ? pass : p)));
   };
@@ -948,6 +1179,9 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateBooking,
         addBooking,
         deleteBooking,
+        combineStays,
+        splitStay,
+        updateHotelDetails,
         addPocketExpense,
         deletePocketExpense,
         totalPocketExpensesINR,

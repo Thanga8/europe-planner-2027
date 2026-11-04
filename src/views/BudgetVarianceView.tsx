@@ -16,16 +16,19 @@ import {
   AlertTriangle,
   Wallet,
   Trash2,
-  Clock
+  Clock,
+  Layers
 } from 'lucide-react';
 import { useTrip } from '../context/TripContext';
 import { TripBookingItem, BookingCategory, BookingStatus } from '../types';
+import { ManageStaysModal } from '../components/ManageStaysModal';
 
 export const BudgetVarianceView: React.FC = () => {
   const { 
     bookings, 
     updateBooking, 
     addBooking, 
+    updateHotelDetails,
     totalPlannedINR, 
     totalBookedINR, 
     totalVarianceINR, 
@@ -40,6 +43,7 @@ export const BudgetVarianceView: React.FC = () => {
   const [showAllItems, setShowAllItems] = useState<boolean>(false);
   const [editingItem, setEditingItem] = useState<TripBookingItem | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+  const [isManageStaysOpen, setIsManageStaysOpen] = useState<boolean>(false);
   const [formData, setFormData] = useState<Partial<TripBookingItem>>({});
 
   const categories = [
@@ -110,6 +114,14 @@ export const BudgetVarianceView: React.FC = () => {
       refundPolicy: policy,
       cancellationFeeINR: isRef ? 0 : (bookedINR ?? editingItem.plannedCostINR),
     } as TripBookingItem;
+
+    if (editingItem.category === 'stay' && (formData.title || formData.location)) {
+      updateHotelDetails(
+        editingItem.id, 
+        formData.title || editingItem.title, 
+        formData.location || editingItem.location
+      );
+    }
 
     updateBooking(updated);
     setEditingItem(null);
@@ -306,16 +318,27 @@ export const BudgetVarianceView: React.FC = () => {
         <span className="text-slate-700 font-extrabold text-xs">
           Showing {displayedBookings.length} of {filteredBookings.length} items
         </span>
-        <button
-          onClick={() => {
-            setFormData({});
-            setIsAddModalOpen(true);
-          }}
-          className="flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl glass-card hover:bg-white text-sky-800 font-bold active:scale-95 transition shadow-xs"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Custom Item</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => setIsManageStaysOpen(true)}
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black active:scale-95 transition shadow-xs border border-indigo-200/80"
+            title="Combine multi-night stays or split stays"
+          >
+            <Layers className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Manage Stays</span>
+          </button>
+          <button
+            onClick={() => {
+              setFormData({});
+              setIsAddModalOpen(true);
+            }}
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl glass-card hover:bg-white text-sky-800 font-bold active:scale-95 transition shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Item</span>
+          </button>
+        </div>
       </div>
 
       {/* Limited, High-Impact Bookings List */}
@@ -332,7 +355,7 @@ export const BudgetVarianceView: React.FC = () => {
             >
               <div className="flex items-start justify-between">
                 <div className="space-y-1.5 min-w-0 pr-3">
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                     <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
                       Day {item.dayNumber} • {item.date}
                     </span>
@@ -347,6 +370,11 @@ export const BudgetVarianceView: React.FC = () => {
                     }`}>
                       {item.bookingStatus.replace('_', ' ')}
                     </span>
+                    {item.nightsCount && item.nightsCount > 1 && (
+                      <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-300">
+                        🔗 {item.nightsCount} Nights Stay
+                      </span>
+                    )}
                   </div>
                   <h3 className="text-lg font-black text-slate-900 tracking-tight leading-snug">{item.title}</h3>
                   <p className="text-xs text-slate-500 font-medium truncate">{item.provider} • {item.location}</p>
@@ -429,12 +457,27 @@ export const BudgetVarianceView: React.FC = () => {
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="text-slate-700 block mb-1.5 font-bold">Item Title</label>
+                <label className="text-slate-700 block mb-1.5 font-bold">
+                  {editingItem.category === 'stay' ? 'Hotel / Property Name' : 'Item Title'}
+                </label>
                 <input
                   type="text"
                   value={formData.title || ''}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
                   className="w-full glass-subcard rounded-2xl px-4 py-3 text-slate-900 font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-700 block mb-1.5 font-bold">
+                  {editingItem.category === 'stay' ? 'Hotel Location / Street Address (Updates Map Pins)' : 'Location'}
+                </label>
+                <input
+                  type="text"
+                  value={formData.location || (editingItem.location || '')}
+                  onChange={e => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="e.g. 14 Rue de la Paix, Paris"
+                  className="w-full glass-subcard rounded-2xl px-4 py-3 text-slate-900 font-medium"
                 />
               </div>
 
@@ -651,6 +694,12 @@ export const BudgetVarianceView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Multi-Select Combine & Split Stays Modal */}
+      <ManageStaysModal
+        isOpen={isManageStaysOpen}
+        onClose={() => setIsManageStaysOpen(false)}
+      />
     </div>
   );
 };

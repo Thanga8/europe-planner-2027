@@ -702,7 +702,11 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
                   <div className="flex items-center space-x-1 text-amber-300 text-xs font-black">
                     <Star className="w-3.5 h-3.5 fill-amber-300" />
                     <span>4.9</span>
-                    <span className="text-white/80 font-medium">• Day {item.dayNumber}</span>
+                    <span className="text-white/80 font-medium">
+                      • {item.nightsCount && item.nightsCount > 1 
+                          ? `Days ${item.mergedDayNumbers ? item.mergedDayNumbers.join(', ') : item.dayNumber} (${item.nightsCount} Nights)` 
+                          : `Day ${item.dayNumber}`}
+                    </span>
                   </div>
                 </div>
               </div>

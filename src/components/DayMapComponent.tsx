@@ -26,12 +26,24 @@ export const DayMapComponent: React.FC<DayMapComponentProps> = ({ activeDay, day
   const [stops, setStops] = useState<MapStop[]>([]);
   const [selectedStop, setSelectedStop] = useState<MapStop | null>(null);
 
-  // Synchronize curated stops for the active day
+  // Synchronize curated stops for the active day, integrating dynamic hotel name and location
   useEffect(() => {
     const defaultStops = CURATED_DAY_STOPS[activeDay.dayNumber] || CURATED_DAY_STOPS[1];
-    setStops(defaultStops);
-    setSelectedStop(defaultStops[0] || null);
-  }, [activeDay.dayNumber]);
+    const dayStay = dayBookings.find(b => b.category === 'stay');
+    const adjustedStops = defaultStops.map(stop => {
+      if (stop.category === 'hotel' && dayStay) {
+        const cleanName = dayStay.title.replace(/\s*\((?:Night\s*\d+|2\s*Nights|3\s*Nights|\d+\s*Nights)[^)]*\)/i, '').trim();
+        return {
+          ...stop,
+          name: cleanName || stop.name,
+          address: dayStay.location || stop.address,
+        };
+      }
+      return stop;
+    });
+    setStops(adjustedStops);
+    setSelectedStop(adjustedStops[0] || null);
+  }, [activeDay.dayNumber, dayBookings]);
 
   // Initialize Map container once
   useEffect(() => {

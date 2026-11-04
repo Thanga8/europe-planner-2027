@@ -27,14 +27,28 @@ import {
   formatDuration
 } from '../services/transitNotificationService';
 import { MapStop, getStopsForDay, getBasecampForDay } from '../data/curatedStops';
+import { useTrip } from '../context/TripContext';
 
 interface DepartureAssistantCardProps {
   dayNumber: number;
 }
 
 export const DepartureAssistantCard: React.FC<DepartureAssistantCardProps> = ({ dayNumber }) => {
+  const { bookings } = useTrip();
   const dayStops = getStopsForDay(dayNumber);
-  const basecamp = getBasecampForDay(dayNumber);
+  const defaultBasecamp = getBasecampForDay(dayNumber);
+
+  // Check if user has an active stay booking for this day with custom hotel name/location
+  const dayStay = bookings.find(b => 
+    b.category === 'stay' && 
+    (b.dayNumber === dayNumber || (b.mergedDayNumbers && b.mergedDayNumbers.includes(dayNumber)))
+  );
+
+  const basecamp: MapStop = dayStay ? {
+    ...defaultBasecamp,
+    name: dayStay.title.replace(/\s*\((?:Night\s*\d+|2\s*Nights|3\s*Nights|\d+\s*Nights)[^)]*\)/i, '').trim(),
+    address: dayStay.location || defaultBasecamp.address,
+  } : defaultBasecamp;
 
   // Default to the first non-hotel activity or flight, or second stop
   const candidateTarget = dayStops.find(s => s.category !== 'hotel') || dayStops[1] || dayStops[0];

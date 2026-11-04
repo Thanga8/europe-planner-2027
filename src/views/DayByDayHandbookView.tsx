@@ -125,9 +125,11 @@ export const DayByDayHandbookView: React.FC<DayByDayHandbookViewProps> = ({ onOp
         completed: false,
       }));
 
-  // Linked bookings for this day (by day number or explicit itemIds link)
+  // Linked bookings for this day (by day number, explicit itemIds link, or merged multi-night stay)
   const dayBookings = bookings.filter(b => 
-    b.dayNumber === activeDay.dayNumber || (activeDay.itemIds && activeDay.itemIds.includes(b.id))
+    b.dayNumber === activeDay.dayNumber || 
+    (activeDay.itemIds && activeDay.itemIds.includes(b.id)) ||
+    (b.mergedDayNumbers && b.mergedDayNumbers.includes(activeDay.dayNumber))
   );
 
   // Linked passes
