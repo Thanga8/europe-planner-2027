@@ -1,4 +1,4 @@
-const CACHE_NAME = 'europe27-v30';
+const CACHE_NAME = 'europe27-v31';
 
 const STATIC_ASSETS = [
   '/',
@@ -8,8 +8,6 @@ const STATIC_ASSETS = [
   '/pwa-512x512.png',
   '/apple-touch-icon.png',
   '/maskable-icon-512x512.png',
-  '/assets/index-C5tvi_XJ.css',
-  '/assets/index-DOPww9B8.js',
 ];
 
 function fetchWithBypass(request) {
