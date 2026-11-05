@@ -74,6 +74,10 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
   } | null>(null);
 
   // Dynamic Refundability & Cutoff fields - Non-refundable by default
+  const [importTitle, setImportTitle] = useState<string>('');
+  const [importLocation, setImportLocation] = useState<string>('');
+  const [importCheckInDate, setImportCheckInDate] = useState<string>('');
+  const [importCheckOutDate, setImportCheckOutDate] = useState<string>('');
   const [importIsRefundable, setImportIsRefundable] = useState<boolean>(false);
   const [importCancellationDeadline, setImportCancellationDeadline] = useState<string>('');
   const [importRefundPolicy, setImportRefundPolicy] = useState<string>('');
@@ -100,6 +104,10 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
     prefilledData?: ExtractedBookingData
   ) => {
     setSelectedItemToImport(item);
+    setImportTitle(item.title);
+    setImportLocation(item.location);
+    setImportCheckInDate(item.date || '2027-02-06');
+    setImportCheckOutDate(item.checkOutDate || '');
     setDraftAttachment(prefilledAttachment || item.attachment || null);
     setUploadedFile(null);
     setExtractedNotice(prefilledData || null);
@@ -440,6 +448,10 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
 
     updateBooking({
       ...selectedItemToImport,
+      title: importTitle.trim() || selectedItemToImport.title,
+      location: importLocation.trim() || selectedItemToImport.location,
+      date: importCheckInDate.trim() || selectedItemToImport.date,
+      checkOutDate: importCheckOutDate.trim() || selectedItemToImport.checkOutDate,
       bookingStatus: 'confirmed',
       confirmationNumber: detectedPNR,
       bookedCostINR: detectedPrice,
@@ -854,7 +866,11 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
 
                 {/* Onto Price Drop & Refund Evaluation Card for Stays */}
                 {item.category === 'stay' && isBooked && (
-                  <OntoPriceRadarCard item={item} onUpdateItem={updateBooking} />
+                  <OntoPriceRadarCard 
+                    item={item} 
+                    onUpdateItem={updateBooking} 
+                    onEditItem={() => openImporterFor(item)}
+                  />
                 )}
 
                 {/* Collapsible Details */}
@@ -1093,6 +1109,67 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
             )}
 
             <div className="space-y-4 text-xs">
+              {/* Hotel / Booking Name & Dates Section */}
+              <div className="p-4 rounded-2xl glass-subcard space-y-3 border border-slate-200/80 bg-white/80">
+                <div className="flex items-center justify-between">
+                  <label className="text-slate-800 font-black text-xs uppercase tracking-wider">
+                    {selectedItemToImport.category === 'stay' ? 'Hotel / Accommodation Name' : 'Booking Name'}
+                  </label>
+                  <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200">
+                    Used for Onto Fare Radar
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={importTitle}
+                  onChange={e => setImportTitle(e.target.value)}
+                  placeholder="e.g. Hotel Malte Opera Paris"
+                  className="w-full glass-subcard rounded-xl px-3.5 py-2.5 text-slate-900 font-black text-sm border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <div>
+                    <label className="text-slate-600 font-bold text-[11px] block mb-1">
+                      City / Location
+                    </label>
+                    <input
+                      type="text"
+                      value={importLocation}
+                      onChange={e => setImportLocation(e.target.value)}
+                      placeholder="e.g. Paris, France"
+                      className="w-full glass-subcard rounded-xl px-3 py-2 text-slate-800 font-semibold text-xs border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
+                    />
+                  </div>
+
+                  {selectedItemToImport.category === 'stay' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-slate-600 font-bold text-[11px] block mb-1">
+                          Check-In Date
+                        </label>
+                        <input
+                          type="date"
+                          value={importCheckInDate}
+                          onChange={e => setImportCheckInDate(e.target.value)}
+                          className="w-full glass-subcard rounded-xl px-2.5 py-2 text-slate-800 font-bold text-xs border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-600 font-bold text-[11px] block mb-1">
+                          Check-Out Date
+                        </label>
+                        <input
+                          type="date"
+                          value={importCheckOutDate}
+                          onChange={e => setImportCheckOutDate(e.target.value)}
+                          className="w-full glass-subcard rounded-xl px-2.5 py-2 text-slate-800 font-bold text-xs border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-sky-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* 1. Document Attachment / Existing Voucher */}
               <div className="space-y-2">
                 <label className="text-slate-800 font-black text-xs uppercase tracking-wider block">

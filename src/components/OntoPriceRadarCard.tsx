@@ -8,7 +8,9 @@ import {
   Clock,
   Sparkles,
   History,
-  Tag
+  Tag,
+  Calendar,
+  Edit3
 } from 'lucide-react';
 import { TripBookingItem } from '../types';
 import {
@@ -22,11 +24,13 @@ import {
 interface OntoPriceRadarCardProps {
   item: TripBookingItem;
   onUpdateItem: (updatedItem: TripBookingItem) => void;
+  onEditItem?: () => void;
 }
 
 export const OntoPriceRadarCard: React.FC<OntoPriceRadarCardProps> = ({
   item,
   onUpdateItem,
+  onEditItem,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -36,6 +40,15 @@ export const OntoPriceRadarCard: React.FC<OntoPriceRadarCardProps> = ({
 
   const evaluation: OntoEvaluationResult = evaluateOntoPriceDropAndRefund(item);
   const deepLinks = generateHotelDeepLinks(item);
+
+  const checkIn = item.date || '2027-02-06';
+  let checkOut = item.checkOutDate;
+  if (!checkOut) {
+    const d = new Date(checkIn);
+    d.setDate(d.getDate() + (item.nightsCount || 1));
+    checkOut = d.toISOString().split('T')[0];
+  }
+  const nights = item.nightsCount || 1;
 
   // Quick simulate live market scan (mimics Onto background rate crawler)
   const handleSimulateLiveScan = () => {
@@ -108,6 +121,12 @@ export const OntoPriceRadarCard: React.FC<OntoPriceRadarCardProps> = ({
             <h4 className="text-sm font-black tracking-tight mt-0.5">
               {evaluation.actionTitle}
             </h4>
+            <div className="flex items-center space-x-1 mt-0.5 text-[10px] font-semibold text-slate-500">
+              <Calendar className="w-3 h-3 text-sky-600 shrink-0" />
+              <span>
+                Exact Dates: <strong>{new Date(checkIn).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} – {new Date(checkOut).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</strong> ({nights} {nights === 1 ? 'Night' : 'Nights'} • 2 Adults)
+              </span>
+            </div>
           </div>
         </div>
 
@@ -241,6 +260,18 @@ export const OntoPriceRadarCard: React.FC<OntoPriceRadarCardProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
+            {onEditItem && (
+              <button
+                type="button"
+                onClick={onEditItem}
+                className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-[11px] inline-flex items-center space-x-1 transition"
+                title="Edit Hotel Name & Dates"
+              >
+                <Edit3 className="w-3 h-3 text-slate-600" />
+                <span>Edit Hotel</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setIsCustomModalOpen(true)}
