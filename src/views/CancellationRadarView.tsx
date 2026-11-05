@@ -24,7 +24,8 @@ import {
   Paperclip,
   Search,
   RefreshCw,
-  QrCode
+  QrCode,
+  TrendingDown
 } from 'lucide-react';
 import { useTrip } from '../context/TripContext';
 import { TripBookingItem, EncryptedDocumentAttachment } from '../types';
@@ -32,6 +33,8 @@ import { fileToBase64 } from '../services/crypto';
 import { getItemImage } from '../data/travelImages';
 import { extractTextFromPdfFile, parseBookingText, ExtractedBookingData, CandidateAmount, cleanNumber } from '../services/pdfParser';
 import { DocumentViewerModal } from '../components/DocumentViewerModal';
+import { OntoPriceRadarCard } from '../components/OntoPriceRadarCard';
+import { evaluateOntoPriceDropAndRefund } from '../services/ontoPricingService';
 
 interface CancellationRadarViewProps {
   onOpenPass?: (passId: string) => void;
@@ -345,6 +348,14 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
   const pendingItemsCount = bookings.filter(b => b.bookingStatus === 'not_booked').length;
   const totalItemsCount = bookings.length;
 
+  // Onto Price Drop Opportunities across hotel stays
+  const hotelDropOpportunities = bookings
+    .filter(b => b.category === 'stay')
+    .map(b => evaluateOntoPriceDropAndRefund(b))
+    .filter(e => e.status === 'REBOOK_AND_REFUND');
+
+  const totalOntoSavingsINR = hotelDropOpportunities.reduce((acc, curr) => acc + curr.priceDiffINR, 0);
+
   // Filtered list
   const filteredBookings = sortedBookings.filter(item => {
     if (filterType === 'all') return true;
@@ -526,6 +537,25 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
             <span className="text-[11px] text-rose-700 font-bold block mt-0.5">Peak Igloo</span>
           </div>
         </div>
+
+        {/* Onto Price Drop Opportunities Alert Banner */}
+        {totalOntoSavingsINR > 0 && (
+          <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md flex items-center justify-between animate-in fade-in">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 rounded-xl bg-white/20 text-white shrink-0">
+                <TrendingDown className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-black tracking-tight">
+                  🎉 Onto Fare Radar: ₹{totalOntoSavingsINR.toLocaleString('en-IN')} Rebook & Refund Savings Available!
+                </h4>
+                <p className="text-[11px] text-emerald-100 font-medium">
+                  {hotelDropOpportunities.length} hotel stay(s) dropped in price with 100% free cancellation active before cutoff.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Universal Instant PDF Scanner Banner */}
@@ -643,6 +673,7 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
           const isBooked = item.bookingStatus === 'confirmed' || item.bookingStatus === 'reserved';
           const isExpanded = expandedItemId === item.id;
           const imageUrl = getItemImage(item.id, item.title, item.category, item.location);
+          const ontoEval = item.category === 'stay' ? evaluateOntoPriceDropAndRefund(item) : null;
 
           return (
             <div
@@ -687,10 +718,18 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
                     </span>
                   )}
 
-                  {/* Category Pill */}
-                  <span className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-extrabold uppercase tracking-wider capitalize">
-                    {item.category}
-                  </span>
+                  {/* Category Pill & Onto Drop Alert */}
+                  <div className="flex items-center space-x-1.5">
+                    {ontoEval?.status === 'REBOOK_AND_REFUND' && (
+                      <span className="px-3 py-1.5 rounded-full bg-emerald-600/95 backdrop-blur-md text-white text-[11px] font-black uppercase tracking-wider shadow-sm flex items-center space-x-1 animate-pulse">
+                        <TrendingDown className="w-3.5 h-3.5" />
+                        <span>Save ₹{ontoEval.priceDiffINR.toLocaleString('en-IN')}</span>
+                      </span>
+                    )}
+                    <span className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-extrabold uppercase tracking-wider capitalize">
+                      {item.category}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Bottom Overlay Info */}
@@ -812,6 +851,11 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
                     </button>
                   </div>
                 </div>
+
+                {/* Onto Price Drop & Refund Evaluation Card for Stays */}
+                {item.category === 'stay' && isBooked && (
+                  <OntoPriceRadarCard item={item} onUpdateItem={updateBooking} />
+                )}
 
                 {/* Collapsible Details */}
                 {isExpanded && (

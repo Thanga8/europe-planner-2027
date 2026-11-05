@@ -49,6 +49,13 @@ export const INITIAL_BOOKINGS: TripBookingItem[] = [
     bookingUrl: 'https://www.booking.com/myreservations',
     notes: 'Pay on arrival in EUR. Request high-floor quiet room with courtyard view.',
     passId: 'pass-hotel-paris',
+    currentTrackedRateINR: 10400,
+    trackedRateSource: 'Agoda Flash Deal',
+    lastPriceCheckDate: '2026-11-05T18:30:00Z',
+    priceDropHistory: [
+      { checkedAt: '2026-10-15T10:00:00Z', amountINR: 11850, source: 'Booking.com', isBooked: true },
+      { checkedAt: '2026-11-05T18:30:00Z', amountINR: 10400, source: 'Agoda Flash Deal', isBooked: false }
+    ],
   },
 
   // Day 2 - Feb 7, 2027
@@ -147,6 +154,13 @@ export const INITIAL_BOOKINGS: TripBookingItem[] = [
     emergencyContact: '+41 41 227 12 12',
     bookingUrl: 'https://www.booking.com',
     notes: 'Includes free Lucerne City Visitor Transit Card upon check-in.',
+    currentTrackedRateINR: 23600,
+    trackedRateSource: 'Google Hotels Live',
+    lastPriceCheckDate: '2026-11-05T18:30:00Z',
+    priceDropHistory: [
+      { checkedAt: '2026-10-18T10:00:00Z', amountINR: 22100, source: 'Booking.com', isBooked: true },
+      { checkedAt: '2026-11-05T18:30:00Z', amountINR: 23600, source: 'Google Hotels Live', isBooked: false }
+    ],
   },
 
   // Day 4 - Feb 9, 2027
@@ -294,6 +308,13 @@ export const INITIAL_BOOKINGS: TripBookingItem[] = [
     emergencyContact: '+358 40 123 4567',
     bookingUrl: 'https://www.airbnb.com',
     notes: 'Keycode entry lock box. Host sends code 24 hrs prior.',
+    currentTrackedRateINR: 15800,
+    trackedRateSource: 'Booking.com Promo',
+    lastPriceCheckDate: '2026-11-05T18:30:00Z',
+    priceDropHistory: [
+      { checkedAt: '2026-10-22T10:00:00Z', amountINR: 17900, source: 'Airbnb / Booking.com', isBooked: true },
+      { checkedAt: '2026-11-05T18:30:00Z', amountINR: 15800, source: 'Booking.com Promo', isBooked: false }
+    ],
   },
 
   // Day 7 - Feb 12, 2027

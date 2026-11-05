@@ -371,3 +371,4 @@ export const ManageStaysModal: React.FC<ManageStaysModalProps> = ({ isOpen, onCl
     </div>
   );
 };
+

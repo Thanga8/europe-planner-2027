@@ -30,6 +30,19 @@ export interface TripBookingItem {
   checkOutDate?: string; // Check-out date (e.g. "2027-02-08")
   mergedDayNumbers?: number[]; // Day numbers covered by this stay (e.g. [1, 2])
   mergedItemIds?: string[]; // IDs of constituent nightly bookings if combined
+  
+  // Onto-style fare tracking & price history
+  currentTrackedRateINR?: number | null;
+  trackedRateSource?: string;
+  lastPriceCheckDate?: string;
+  priceDropHistory?: PriceChangeRecord[];
+}
+
+export interface PriceChangeRecord {
+  checkedAt: string;
+  amountINR: number;
+  source: string; // e.g. 'Google Hotels' | 'Agoda' | 'Booking.com' | 'Manual Check'
+  isBooked?: boolean;
 }
 
 export type PassType = 'boarding_pass' | 'hotel_reservation' | 'activity_ticket' | 'train_ticket' | 'secure_document';
