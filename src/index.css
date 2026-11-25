@@ -1,11 +1,23 @@
 @import "tailwindcss";
 
+:root {
+  --bg: #fffbf2;
+  --surface: #fffdf8;
+  --ink: #1a1a1a;
+  --accent: #ff5e3a;
+  --teal: #4ecdc4;
+  --ink-faint: rgba(26, 26, 26, 0.06);
+  --safe: #16a34a;
+  --risk: #ef4444;
+}
+
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;
   }
-  
-  html, body {
+
+  html,
+  body {
     min-height: 100%;
     margin: 0;
     padding: 0;
@@ -13,91 +25,91 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
-    background-color: #f1f5f9;
-    color: #0f172a;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
-/* Genuine Frosted Glassmorphism with Specular Refraction & Luminous Ambient Depth */
+/* Variation 9: Fluid Travel Editorial Typography Helpers */
+.font-gaegu {
+  font-family: 'Gaegu', cursive;
+}
+
+.font-mono-fluid {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.fluid-arch-image {
+  border-radius: 200px 200px 0 0;
+  box-shadow: 28px 28px 0px var(--ink-faint);
+}
+
+/* Variation 9 Surface System (Propagated across all views & modals) */
 .glass-card {
-  background: rgba(255, 255, 255, 0.62) !important;
-  backdrop-filter: blur(28px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.85) !important;
-  box-shadow: 
-    0 16px 36px -8px rgba(15, 23, 42, 0.08),
-    0 4px 12px -2px rgba(15, 23, 42, 0.03),
-    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 253, 248, 0.92) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  border: 1px solid rgba(26, 26, 26, 0.11) !important;
+  box-shadow: 6px 6px 0px rgba(26, 26, 26, 0.05) !important;
 }
 
 .glass-card-elevated {
-  background: rgba(255, 255, 255, 0.72) !important;
-  backdrop-filter: blur(32px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.95) !important;
-  box-shadow: 
-    0 24px 48px -12px rgba(14, 165, 233, 0.16),
-    0 8px 20px -4px rgba(15, 23, 42, 0.06),
-    inset 0 2px 2px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.4) !important;
+  background: #ffffff !important;
+  backdrop-filter: blur(22px) !important;
+  -webkit-backdrop-filter: blur(22px) !important;
+  border: 1.5px solid rgba(26, 26, 26, 0.15) !important;
+  box-shadow: 10px 10px 0px rgba(26, 26, 26, 0.06) !important;
 }
 
 .glass-subcard {
-  background: rgba(255, 255, 255, 0.48) !important;
-  backdrop-filter: blur(18px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(140%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.75) !important;
-  box-shadow: 
-    0 4px 16px -2px rgba(15, 23, 42, 0.04),
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.85) !important;
+  background: rgba(255, 251, 242, 0.92) !important;
+  border: 1px solid rgba(26, 26, 26, 0.11) !important;
+  box-shadow: 3px 3px 0px rgba(26, 26, 26, 0.04) !important;
 }
 
 .glass-nav {
-  background: rgba(255, 255, 255, 0.72) !important;
-  backdrop-filter: blur(32px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
-  border-top: 1.5px solid rgba(255, 255, 255, 0.85) !important;
-  box-shadow: 
-    0 -12px 32px -4px rgba(15, 23, 42, 0.08),
-    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95) !important;
+  background: rgba(255, 251, 242, 0.94) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-top: 1px solid rgba(26, 26, 26, 0.12) !important;
+  box-shadow: 0 -8px 24px -8px rgba(26, 26, 26, 0.08) !important;
 }
 
 .glass-pill {
-  background: rgba(255, 255, 255, 0.55) !important;
-  backdrop-filter: blur(18px) !important;
-  -webkit-backdrop-filter: blur(18px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.85) !important;
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.04) !important;
+  background: #fffdf8 !important;
+  border: 1px solid rgba(26, 26, 26, 0.15) !important;
+  color: #1a1a1a;
+  box-shadow: 3px 3px 0px rgba(26, 26, 26, 0.04) !important;
 }
 
 .glass-pill-active {
-  background: linear-gradient(135deg, #0284c7, #4f46e5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  background: #ff5e3a !important;
+  border: 1px solid #ff5e3a !important;
   color: #ffffff !important;
-  box-shadow: 0 8px 20px -4px rgba(2, 132, 199, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 4px 4px 0px rgba(26, 26, 26, 0.14) !important;
 }
 
-/* Custom scrollbars */
+/* Custom warm-ink scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.35);
+  background: rgba(26, 26, 26, 0.18);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.55);
+  background: rgba(255, 94, 58, 0.55);
 }
 
 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 24px);
+  padding-bottom: env(safe-area-inset-bottom, 20px);
 }
 .pt-safe {
-  padding-top: env(safe-area-inset-top, 18px);
+  padding-top: env(safe-area-inset-top, 14px);
 }

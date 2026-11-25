@@ -107,16 +107,15 @@ export const TravelChecklistView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-36 px-4 sm:px-6 pt-5 max-w-xl mx-auto">
+    <div className="space-y-6 pb-36 md:pb-16 px-5 sm:px-8 pt-6 max-w-4xl mx-auto">
       {/* Top Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between gap-3">
         <div>
-          <span className="text-[11px] font-black uppercase tracking-wider text-sky-700 block">
-            Trip Preparation & Habits
+          <span className="font-mono-fluid text-[11px] uppercase tracking-[0.2em] text-[#1a1a1a]/50 block">
+            Trip Preparation &amp; Daily Routine
           </span>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center space-x-2">
-            <span>Travel Checklists</span>
-            <Sparkles className="w-5 h-5 text-amber-500 inline" />
+          <h1 className="font-gaegu text-4xl sm:text-5xl font-bold leading-none text-[#ff5e3a] -rotate-1 inline-block mt-1">
+            Travel Checklists
           </h1>
         </div>
 

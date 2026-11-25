@@ -144,6 +144,21 @@ export interface VaultSecurityState {
   lastActiveTimestamp: number;
 }
 
+export type ItineraryStopCategory = 'hotel' | 'activity' | 'station' | 'flight' | 'food';
+
+export interface ItineraryStop {
+  id: string;
+  name: string;
+  category: ItineraryStopCategory;
+  lat: number;
+  lng: number;
+  time?: string;
+  address?: string;
+  notes?: string;
+  placeId?: string;
+  completed?: boolean;
+}
+
 export interface DayItineraryItem {
   id: string;
   text: string;
@@ -163,6 +178,7 @@ export interface DayItinerary {
   notes?: string; // Custom day scratchpad / reminders
   highlights: string[]; // Fallback list
   timelineItems?: DayItineraryItem[]; // Rich interactive timeline items with time tags & completion
+  stops?: ItineraryStop[]; // Interactive day-wise map stops with coordinates & route order
   itemIds: string[]; // references TripBookingItem
 }
 

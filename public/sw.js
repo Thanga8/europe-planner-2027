@@ -1,8 +1,6 @@
-const CACHE_NAME = 'europe27-v31';
+const CACHE_NAME = 'europe27-v32';
 
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
@@ -10,30 +8,18 @@ const STATIC_ASSETS = [
   '/maskable-icon-512x512.png',
 ];
 
-function fetchWithBypass(request) {
-  try {
-    const newHeaders = new Headers(request.headers);
-    newHeaders.set('Bypass-Tunnel-Reminder', 'true');
-    return fetch(new Request(request, { headers: newHeaders }));
-  } catch (e) {
-    return fetch(request);
-  }
-}
-
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
       await Promise.allSettled(
         STATIC_ASSETS.map((url) =>
-          fetchWithBypass(new Request(url))
+          fetch(new Request(url, { cache: 'reload' }))
             .then((res) => {
               if (res && res.status === 200) {
                 return cache.put(url, res);
               }
             })
-            .catch((err) => {
-              console.warn('Skip cache asset:', url, err);
-            })
+            .catch(() => {})
         )
       );
     })
@@ -43,16 +29,16 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
+    caches.keys().then((keys) =>
+      Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('Purged old cache:', key);
             return caches.delete(key);
           }
+          return Promise.resolve(false);
         })
-      );
-    })
+      )
+    )
   );
   self.clients.claim();
 });
@@ -61,10 +47,28 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
+  const url = new URL(req.url);
+
+  // Never intercept cross-origin requests (Google Maps APIs, tiles, Open-Meteo, etc.)
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Never intercept Vite dev server modules or HMR endpoints
+  if (
+    url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/@') ||
+    url.pathname.startsWith('/node_modules/') ||
+    url.searchParams.has('t') ||
+    url.searchParams.has('v')
+  ) {
+    return;
+  }
+
   // HTML navigation: Network First, fallback to cached index.html
   if (req.mode === 'navigate' || req.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
-      fetchWithBypass(req)
+      fetch(req)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const clone = networkResponse.clone();
@@ -72,37 +76,41 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(() => {
-          return caches.match('/index.html') || caches.match('/');
-        })
+        .catch(() => caches.match('/index.html') || caches.match('/'))
     );
     return;
   }
 
-  // Assets: Cache First, fallback to Network
-  event.respondWith(
-    caches.match(req).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetchWithBypass(req)
-        .then((networkResponse) => {
+  // Only cache immutable production build assets (/assets/*) and static icons; Network First otherwise
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      caches.match(req).then((cachedResponse) => {
+        if (cachedResponse) return cachedResponse;
+        return fetch(req).then((networkResponse) => {
           const contentType = networkResponse.headers.get('content-type') || '';
-          if (
-            networkResponse.status === 200 &&
-            !contentType.includes('text/html')
-          ) {
+          if (networkResponse.status === 200 && !contentType.includes('text/html')) {
             const clone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
           }
           return networkResponse;
-        })
-        .catch((err) => {
-          console.warn('Fetch fallback failed:', req.url, err);
-          return new Response('Asset not available offline', { status: 503 });
         });
-    })
+      })
+    );
+    return;
+  }
+
+  // Default same-origin assets: Network First with cache fallback
+  event.respondWith(
+    fetch(req)
+      .then((networkResponse) => {
+        const contentType = networkResponse.headers.get('content-type') || '';
+        if (networkResponse.status === 200 && !contentType.includes('text/html')) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(req))
   );
 });
 

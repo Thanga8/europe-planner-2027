@@ -3,6 +3,7 @@ import {
   TripBookingItem, 
   DigitalPass, 
   DayItinerary, 
+  ItineraryStop,
   VisaTrackerState, 
   VaultSecurityState,
   PocketExpense,
@@ -15,6 +16,7 @@ import {
   INITIAL_VISA_STATE,
   INITIAL_CHECKLIST_ITEMS 
 } from '../data/seedData';
+import { CURATED_DAY_STOPS } from '../data/curatedStops';
 import { 
   hashPin, 
   generateSaltBase64, 
@@ -62,6 +64,11 @@ interface TripContextType {
   // Itinerary Actions
   updateItinerary: (day: DayItinerary) => void;
   toggleItineraryItemCompleted: (dayNumber: number, itemIdOrIndex: string | number) => void;
+  updateDayStops: (dayNumber: number, stops: ItineraryStop[]) => void;
+  addDayStop: (dayNumber: number, stop: ItineraryStop) => void;
+  removeDayStop: (dayNumber: number, stopId: string) => void;
+  toggleDayStopCompleted: (dayNumber: number, stopId: string) => void;
+  reorderDayStops: (dayNumber: number, fromIndex: number, toIndex: number) => void;
   resetDayItinerary: (dayNumber: number) => void;
   resetAllItineraries: () => void;
   swapDays: (dayA: number, dayB: number, syncBookings?: boolean) => void;
@@ -186,7 +193,21 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : INITIAL_PASSES;
   });
 
-  // Itineraries (editable day-by-day reference)
+  const hydrateDefaultStops = (dayNumber: number): ItineraryStop[] => {
+    const rawStops = CURATED_DAY_STOPS[dayNumber] || [];
+    return rawStops.map(stop => ({
+      id: stop.id,
+      name: stop.name,
+      category: stop.category,
+      lat: stop.lat,
+      lng: stop.lon,
+      time: stop.time,
+      address: stop.address,
+      completed: false,
+    }));
+  };
+
+  // Itineraries (editable day-by-day reference with interactive map stops)
   const [itineraries, setItineraries] = useState<DayItinerary[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.ITINERARIES);
@@ -199,6 +220,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
             text: h,
             completed: false,
           })),
+          stops: day.stops && day.stops.length > 0 ? day.stops : hydrateDefaultStops(day.dayNumber),
         }));
       }
     } catch (e) {
@@ -211,6 +233,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         text: h,
         completed: false,
       })),
+      stops: hydrateDefaultStops(day.dayNumber),
     }));
   });
 
@@ -845,6 +868,64 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
+  const updateDayStops = (dayNumber: number, stops: ItineraryStop[]) => {
+    setItineraries(prev => prev.map(d => (d.dayNumber === dayNumber ? { ...d, stops } : d)));
+  };
+
+  const addDayStop = (dayNumber: number, stop: ItineraryStop) => {
+    setItineraries(prev =>
+      prev.map(d => {
+        if (d.dayNumber !== dayNumber) return d;
+        const currentStops = d.stops && d.stops.length > 0 ? d.stops : hydrateDefaultStops(d.dayNumber);
+        return { ...d, stops: [...currentStops, stop] };
+      })
+    );
+  };
+
+  const removeDayStop = (dayNumber: number, stopId: string) => {
+    setItineraries(prev =>
+      prev.map(d => {
+        if (d.dayNumber !== dayNumber) return d;
+        const currentStops = d.stops && d.stops.length > 0 ? d.stops : hydrateDefaultStops(d.dayNumber);
+        return { ...d, stops: currentStops.filter(s => s.id !== stopId) };
+      })
+    );
+  };
+
+  const toggleDayStopCompleted = (dayNumber: number, stopId: string) => {
+    setItineraries(prev =>
+      prev.map(d => {
+        if (d.dayNumber !== dayNumber) return d;
+        const currentStops = d.stops && d.stops.length > 0 ? d.stops : hydrateDefaultStops(d.dayNumber);
+        return {
+          ...d,
+          stops: currentStops.map(s => (s.id === stopId ? { ...s, completed: !s.completed } : s)),
+        };
+      })
+    );
+  };
+
+  const reorderDayStops = (dayNumber: number, fromIndex: number, toIndex: number) => {
+    setItineraries(prev =>
+      prev.map(d => {
+        if (d.dayNumber !== dayNumber) return d;
+        const currentStops = [...(d.stops && d.stops.length > 0 ? d.stops : hydrateDefaultStops(d.dayNumber))];
+        if (
+          fromIndex < 0 ||
+          toIndex < 0 ||
+          fromIndex >= currentStops.length ||
+          toIndex >= currentStops.length ||
+          fromIndex === toIndex
+        ) {
+          return d;
+        }
+        const [moved] = currentStops.splice(fromIndex, 1);
+        currentStops.splice(toIndex, 0, moved);
+        return { ...d, stops: currentStops };
+      })
+    );
+  };
+
   const resetDayItinerary = (dayNumber: number) => {
     const defaultDay = INITIAL_DAY_ITINERARIES.find(d => d.dayNumber === dayNumber);
     if (!defaultDay) return;
@@ -855,6 +936,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         text: h,
         completed: false,
       })),
+      stops: hydrateDefaultStops(defaultDay.dayNumber),
     };
     setItineraries(prev => prev.map(d => (d.dayNumber === dayNumber ? restored : d)));
   };
@@ -867,6 +949,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         text: h,
         completed: false,
       })),
+      stops: hydrateDefaultStops(day.dayNumber),
     })));
   };
 
@@ -877,8 +960,6 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const dayB = itineraries.find(d => d.dayNumber === dayBNum);
     if (!dayA || !dayB) return;
 
-    // We preserve calendar chronology: Day A keeps dayANum, dayA.date, dayA.dayName
-    // Day B keeps dayBNum, dayB.date, dayB.dayName, but swap the content payload:
     const newDayA: DayItinerary = {
       ...dayA,
       title: dayB.title,
@@ -889,6 +970,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       notes: dayB.notes,
       highlights: [...dayB.highlights],
       timelineItems: dayB.timelineItems ? [...dayB.timelineItems] : undefined,
+      stops: dayB.stops ? [...dayB.stops] : hydrateDefaultStops(dayB.dayNumber),
       itemIds: [...dayB.itemIds],
     };
 
@@ -902,6 +984,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       notes: dayA.notes,
       highlights: [...dayA.highlights],
       timelineItems: dayA.timelineItems ? [...dayA.timelineItems] : undefined,
+      stops: dayA.stops ? [...dayA.stops] : hydrateDefaultStops(dayA.dayNumber),
       itemIds: [...dayA.itemIds],
     };
 
@@ -932,7 +1015,6 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const toIndex = sorted.findIndex(d => d.dayNumber === toDayNum);
     if (fromIndex === -1 || toIndex === -1) return;
 
-    // Extract content payload in new order
     const contentList = sorted.map(d => ({
       title: d.title,
       location: d.location,
@@ -942,13 +1024,13 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
       notes: d.notes,
       highlights: d.highlights,
       timelineItems: d.timelineItems,
+      stops: d.stops ? [...d.stops] : hydrateDefaultStops(d.dayNumber),
       itemIds: d.itemIds,
     }));
 
     const [movedContent] = contentList.splice(fromIndex, 1);
     contentList.splice(toIndex, 0, movedContent);
 
-    // Apply new content order onto the fixed date slots
     const newItineraries = sorted.map((slot, idx) => ({
       ...slot,
       ...contentList[idx],
@@ -1200,6 +1282,11 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setExchangeRates,
         updateItinerary,
         toggleItineraryItemCompleted,
+        updateDayStops,
+        addDayStop,
+        removeDayStop,
+        toggleDayStopCompleted,
+        reorderDayStops,
         resetDayItinerary,
         resetAllItineraries,
         swapDays,

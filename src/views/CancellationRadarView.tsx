@@ -355,6 +355,15 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
   const bookedItemsCount = bookings.filter(b => b.bookingStatus === 'confirmed' || b.bookingStatus === 'reserved').length;
   const pendingItemsCount = bookings.filter(b => b.bookingStatus === 'not_booked').length;
   const totalItemsCount = bookings.length;
+  const totalTripValueINR = bookings.reduce((sum, b) => sum + (b.bookedCostINR ?? b.plannedCostINR), 0);
+
+  // Featured focal booking for Variation 9 editorial visual anchor (prefer Apukka Glass Igloo or top non-refundable stay)
+  const featuredBooking =
+    bookings.find(b => b.id === 'book-stay-glass-igloo' || b.title.toLowerCase().includes('igloo') || b.title.toLowerCase().includes('apukka')) ||
+    bookings.find(b => !b.isRefundable && (b.bookingStatus === 'confirmed' || b.bookingStatus === 'reserved')) ||
+    bookings[0];
+
+  const upNextBooking = bookings.find(b => b.bookingStatus === 'not_booked') || null;
 
   // Onto Price Drop Opportunities across hotel stays
   const hotelDropOpportunities = bookings
@@ -377,8 +386,8 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
     return true;
   });
 
-  // Limited content per page: show top 3 by default unless "showAllItems" is clicked
-  const displayedBookings = showAllItems ? filteredBookings : filteredBookings.slice(0, 3);
+  // Limited content per page: show top 6 on desktop / expand via toggle
+  const displayedBookings = showAllItems ? filteredBookings : filteredBookings.slice(0, 6);
 
   const toggleItemBookedStatus = (item: TripBookingItem) => {
     const isCurrentlyBooked = item.bookingStatus === 'confirmed' || item.bookingStatus === 'reserved';
@@ -475,139 +484,243 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
     }, 700);
   };
 
+  const featuredFareINR = featuredBooking
+    ? (featuredBooking.bookedCostINR ?? featuredBooking.plannedCostINR)
+    : 0;
+  const featuredFareLabel = vaultSecurity.hideSensitive
+    ? '••••'
+    : featuredFareINR >= 100000
+    ? `₹${(featuredFareINR / 100000).toFixed(2)}L`
+    : `₹${(featuredFareINR / 1000).toFixed(1)}k`;
+
   return (
-    <div className="space-y-6 pb-36 px-5 sm:px-6 pt-4 max-w-xl mx-auto">
-      {/* GetYourGuide Style Hero Banner */}
-      <div className={`p-6 sm:p-7 rounded-[2.2rem] transition-all ${
-        isEmergencyMode
-          ? 'bg-rose-50/85 backdrop-blur-2xl border border-rose-300 text-rose-900 shadow-xl'
-          : 'glass-card-elevated text-slate-800'
-      }`}>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3.5">
-            <div className={`p-3.5 rounded-2xl ${
-              isEmergencyMode 
-                ? 'bg-rose-600 text-white animate-pulse' 
-                : 'bg-amber-100 text-amber-800 border border-amber-300'
-            }`}>
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-                  Cancellation Radar
-                </h2>
-                {isEmergencyMode && (
-                  <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-rose-600 text-white">
-                    Emergency
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-500 font-bold mt-1">
-                {isEmergencyMode 
-                  ? 'Follow this runbook to cancel refundable bookings.' 
-                  : 'Track non-refundable risks & cutoff dates.'}
-              </p>
-            </div>
+    <div className="space-y-10 pb-36 md:pb-16 px-5 sm:px-8 pt-6 sm:pt-10 max-w-6xl mx-auto">
+      {/* Variation 9: Fluid Travel Editorial Two-Column Hero */}
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+        {/* Left Column: Masthead, Giant Stat, Hairline Strip & Savings Alert */}
+        <div className="lg:col-span-6 space-y-7">
+          <div>
+            <p className="font-mono-fluid text-[11px] uppercase tracking-[0.25em] text-[#1a1a1a]/50 mb-2">
+              Paris • Titlis • Lapland · Live Intel
+            </p>
+            <h1 className="font-gaegu text-5xl sm:text-6xl font-bold leading-[0.88] text-[#ff5e3a] -rotate-1 inline-block">
+              Cancellation Radar
+            </h1>
           </div>
 
-          <button
-            onClick={() => setIsEmergencyMode(!isEmergencyMode)}
-            className={`px-3.5 py-2 rounded-2xl text-xs font-black tracking-wide transition active:scale-95 shadow-sm border shrink-0 ${
-              isEmergencyMode 
-                ? 'bg-slate-900 text-white border-slate-900' 
-                : 'glass-subcard text-rose-700 border-rose-200 hover:bg-rose-50'
-            }`}
-          >
-            {isEmergencyMode ? 'Exit' : '⚡ Visa Rejected?'}
-          </button>
-        </div>
-
-        {/* 3 Metric Pills (GYG Style) */}
-        <div className="grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-white/70">
-          <div className="glass-subcard p-4 rounded-2xl text-center">
-            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Booked</span>
-            <span className="text-xl sm:text-2xl font-black text-sky-800 block mt-1">
+          <div className="space-y-2">
+            <span className="font-mono-fluid text-[11px] uppercase tracking-[0.18em] text-[#1a1a1a]/60 block">
+              Booked Segments
+            </span>
+            <div className="text-6xl sm:text-7xl lg:text-[5rem] font-extrabold tracking-[-0.05em] leading-none text-[#1a1a1a] tabular-nums">
               {bookedItemsCount}/{totalItemsCount}
-            </span>
-            <span className="text-[11px] text-slate-500 font-bold block mt-0.5">{pendingItemsCount} To Book</span>
+            </div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.06em] text-[#1a1a1a]/55 tabular-nums pt-1">
+              Segments Booked ·{' '}
+              {vaultSecurity.hideSensitive
+                ? '₹••••'
+                : `₹${(totalTripValueINR / 100000).toFixed(2)}L`}{' '}
+              Total Value
+            </p>
           </div>
 
-          <div className="glass-subcard p-4 rounded-2xl text-center border-emerald-300">
-            <span className="text-[10px] text-emerald-800 font-extrabold uppercase tracking-wider block">Refundable</span>
-            <span className="text-xl sm:text-2xl font-black text-emerald-800 block mt-1">
-              ₹{(totalRefundableAtStakeINR / 100000).toFixed(2)}L
-            </span>
-            <span className="text-[11px] text-emerald-700 font-bold block mt-0.5">100% Protected</span>
+          {/* Hairline Top-Bordered Refundable / At Risk Strip */}
+          <div className="grid grid-cols-2 gap-8 max-w-sm pt-2">
+            <div className="border-t border-[#1a1a1a] pt-3.5">
+              <span className="font-mono-fluid text-[11px] uppercase tracking-[0.15em] text-[#1a1a1a]/65 block mb-1">
+                Refundable
+              </span>
+              <div className="text-2xl sm:text-3xl font-extrabold text-[#16a34a] tabular-nums">
+                {vaultSecurity.hideSensitive
+                  ? '₹••••'
+                  : `₹${(totalRefundableAtStakeINR / 100000).toFixed(2)}L`}
+              </div>
+              <span className="text-[11px] text-[#1a1a1a]/50 font-medium">100% protected</span>
+            </div>
+
+            <div className="border-t border-[#1a1a1a] pt-3.5">
+              <span className="font-mono-fluid text-[11px] uppercase tracking-[0.15em] text-[#1a1a1a]/65 block mb-1">
+                At Risk
+              </span>
+              <div className="text-2xl sm:text-3xl font-extrabold text-[#ef4444] tabular-nums">
+                {vaultSecurity.hideSensitive
+                  ? '₹••••'
+                  : `₹${(totalNonRefundableLossINR / 100000).toFixed(2)}L`}
+              </div>
+              <span className="text-[11px] text-[#1a1a1a]/50 font-medium">Non-refundable</span>
+            </div>
           </div>
 
-          <div className="glass-subcard p-4 rounded-2xl text-center border-rose-300">
-            <span className="text-[10px] text-rose-800 font-extrabold uppercase tracking-wider block">Non-Refund</span>
-            <span className="text-xl sm:text-2xl font-black text-rose-800 block mt-1">
-              ₹{(totalNonRefundableLossINR / 100000).toFixed(2)}L
-            </span>
-            <span className="text-[11px] text-rose-700 font-bold block mt-0.5">Peak Igloo</span>
+          {/* Signature Dashed Coral-Red Fare Radar Alert */}
+          {totalOntoSavingsINR > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilterType('booked');
+                setShowAllItems(true);
+              }}
+              className="inline-flex items-center gap-2.5 bg-[#fdf2f2] border-2 border-dashed border-[#ef4444] px-5 py-3 rounded-full font-mono-fluid text-xs font-semibold text-[#1a1a1a] hover:bg-[#fee2e2]/70 transition-colors text-left"
+            >
+              <TrendingDown className="w-4 h-4 text-[#ef4444] shrink-0" />
+              <span>
+                ₹{totalOntoSavingsINR.toLocaleString('en-IN')} Savings found via Fare Radar ({hotelDropOpportunities.length} stay)
+              </span>
+            </button>
+          )}
+
+          {/* Action Tags & Quick Controls */}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setIsEmergencyMode(!isEmergencyMode)}
+              className={`px-4 py-2 rounded-full text-[11px] font-extrabold uppercase tracking-wider transition active:scale-95 whitespace-nowrap ${
+                isEmergencyMode
+                  ? 'bg-[#ef4444] text-white'
+                  : 'bg-[#1a1a1a] text-[#fffbf2] hover:bg-[#333333]'
+              }`}
+            >
+              {isEmergencyMode ? 'Exit Visa Runbook' : 'Visa Alert Runbook'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setFilterType('booked');
+                setShowAllItems(false);
+              }}
+              className="px-4 py-2 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-[#16a34a] text-white hover:bg-[#15803d] transition active:scale-95 whitespace-nowrap"
+            >
+              {bookedItemsCount} Booked
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setFilterType('to_book');
+                setShowAllItems(false);
+              }}
+              className="px-4 py-2 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-transparent border border-[#1a1a1a] text-[#1a1a1a] hover:bg-[#1a1a1a]/5 transition active:scale-95 whitespace-nowrap"
+            >
+              {pendingItemsCount} To Book
+            </button>
           </div>
         </div>
 
-        {/* Onto Price Drop Opportunities Alert Banner */}
-        {totalOntoSavingsINR > 0 && (
-          <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-md flex items-center justify-between animate-in fade-in">
-            <div className="flex items-center space-x-3">
-              <div className="p-2.5 rounded-xl bg-white/20 text-white shrink-0">
-                <TrendingDown className="w-5 h-5" />
+        {/* Right Column: Arched Editorial Photo Anchor + Circular Ink Price Badge */}
+        {featuredBooking && (
+          <div className="lg:col-span-6 flex flex-col items-center lg:items-start lg:pl-8">
+            <div className="relative w-full max-w-[360px]">
+              {/* Arched Hero Image */}
+              <div className="relative w-full h-[360px] sm:h-[420px] fluid-arch-image overflow-hidden bg-gradient-to-br from-[#1f2937] via-[#0f172a] to-[#1e3a5f] rotate-2 transition-transform duration-300 hover:rotate-0">
+                <img
+                  src={getItemImage(
+                    featuredBooking.id,
+                    featuredBooking.title,
+                    featuredBooking.category,
+                    featuredBooking.location
+                  )}
+                  alt={featuredBooking.title}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-black tracking-tight">
-                  🎉 Onto Fare Radar: ₹{totalOntoSavingsINR.toLocaleString('en-IN')} Rebook & Refund Savings Available!
-                </h4>
-                <p className="text-[11px] text-emerald-100 font-medium">
-                  {hotelDropOpportunities.length} hotel stay(s) dropped in price with 100% free cancellation active before cutoff.
-                </p>
+
+              {/* Circular Ink Rotated Fare Badge */}
+              <div className="absolute -bottom-5 -left-4 sm:-left-8 w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-[#1a1a1a] text-[#fffbf2] flex flex-col items-center justify-center text-center p-3 -rotate-10 shadow-lg">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-75">
+                  Total Fare
+                </span>
+                <div className="text-lg sm:text-xl font-extrabold tabular-nums mt-0.5">
+                  {featuredFareLabel}
+                </div>
+              </div>
+            </div>
+
+            {/* Editorial Caption & Coral Primary CTA */}
+            <div className="mt-10 w-full max-w-[380px] space-y-2.5 lg:rotate-[0.5deg]">
+              <span className="font-mono-fluid text-[11px] uppercase tracking-[0.15em] text-[#1a1a1a]/65 block">
+                {featuredBooking.title}
+              </span>
+              <div className="text-xs font-extrabold uppercase tracking-[0.06em] text-[#1a1a1a]">
+                Day {featuredBooking.dayNumber} · {featuredBooking.provider || featuredBooking.location}
+              </div>
+              <div className="font-mono-fluid text-[11px] text-[#1a1a1a]/60">
+                ID: {featuredBooking.confirmationNumber || 'PENDING'} ·{' '}
+                {featuredBooking.isRefundable ? 'FREE CANCELLATION' : 'STRICTLY NON-REFUNDABLE'}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (featuredBooking.attachment) {
+                      setActiveViewingAttachment(featuredBooking.attachment);
+                    } else {
+                      openImporterFor(featuredBooking);
+                    }
+                  }}
+                  className="px-6 py-3 bg-[#ff5e3a] hover:bg-[#e84f2d] text-white font-extrabold text-xs uppercase tracking-wider rounded cursor-pointer transition-colors active:scale-95"
+                >
+                  {featuredBooking.attachment ? 'View Voucher' : 'Attach Voucher'}
+                </button>
+
+                {upNextBooking && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterType('to_book');
+                      setExpandedItemId(upNextBooking.id);
+                    }}
+                    className="font-mono-fluid text-[11px] text-[#1a1a1a]/55 hover:text-[#ff5e3a] transition-colors text-left"
+                  >
+                    Up Next: {upNextBooking.title.slice(0, 26)} (₹
+                    {upNextBooking.plannedCostINR.toLocaleString('en-IN')})
+                  </button>
+                )}
               </div>
             </div>
           </div>
         )}
-      </div>
+      </section>
 
       {/* Universal Instant PDF Scanner Banner */}
-      <div className="p-4 sm:p-5 rounded-[2rem] glass-card border border-sky-200/80 shadow-md relative overflow-hidden group">
-        <div className="flex items-center justify-between">
+      <div className="p-4 sm:p-5 rounded-2xl glass-card relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-2xl bg-sky-500 text-white shadow-sm shrink-0">
+            <div className="p-2.5 rounded-xl bg-[#ff5e3a] text-white shrink-0">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-black text-slate-900">
+              <h3 className="text-sm font-extrabold text-[#1a1a1a]">
                 Scan Any Booking PDF or Voucher
               </h3>
-              <p className="text-[11px] text-slate-500 font-medium">
-                Auto-extracts hotel name, price, dates, PNR & cancellation policy directly from document.
+              <p className="text-xs text-[#1a1a1a]/60 font-medium">
+                Auto-extracts hotel name, price, dates, PNR &amp; cancellation policy directly on-device.
               </p>
             </div>
           </div>
 
-          <label className="cursor-pointer shrink-0 ml-3">
-            <span className="px-3.5 py-2 rounded-2xl bg-slate-900 text-white font-black text-xs shadow-sm hover:bg-slate-800 transition active:scale-95 inline-flex items-center space-x-1.5">
-              <Upload className="w-3.5 h-3.5 text-sky-400" />
+          <label className="cursor-pointer shrink-0">
+            <span className="px-4 py-2.5 rounded-xl bg-[#1a1a1a] text-[#fffbf2] font-bold text-xs hover:bg-[#333333] transition active:scale-95 inline-flex items-center space-x-1.5">
+              <Upload className="w-3.5 h-3.5 text-[#ff5e3a]" />
               <span>Choose PDF</span>
             </span>
-            <input 
-              type="file" 
-              accept="application/pdf,image/*" 
-              className="hidden" 
-              onChange={e => {
+            <input
+              type="file"
+              accept="application/pdf,image/*"
+              className="hidden"
+              onChange={(e) => {
                 if (e.target.files?.[0]) {
                   handleUniversalPdfScan(e.target.files[0]);
                 }
-              }} 
+              }}
             />
           </label>
         </div>
 
         {isParsingPdf && (
-          <div className="mt-3 pt-3 border-t border-sky-100 flex items-center space-x-2 text-sky-800 text-xs font-bold animate-pulse">
-            <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
+          <div className="mt-3 pt-3 border-t border-[#1a1a1a]/10 flex items-center space-x-2 text-[#1a1a1a] text-xs font-bold">
+            <Loader2 className="w-4 h-4 animate-spin text-[#ff5e3a]" />
             <span>Reading and analyzing booking voucher details with on-device parser...</span>
           </div>
         )}
@@ -615,34 +728,52 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
 
       {/* Emergency Visa Runbook (if activated) */}
       {isEmergencyMode && (
-        <div className="p-6 rounded-[2.2rem] bg-rose-50/90 backdrop-blur-2xl border border-rose-300 space-y-4 shadow-xl">
-          <div className="flex items-center space-x-2 text-rose-700">
+        <div className="p-6 rounded-2xl bg-[#fdf2f2] border-2 border-dashed border-[#ef4444] space-y-4">
+          <div className="flex items-center space-x-2 text-[#ef4444]">
             <Flame className="w-5 h-5" />
-            <h3 className="text-sm font-black uppercase tracking-wider">
+            <h3 className="font-mono-fluid text-xs font-bold uppercase tracking-widest">
               Emergency Cancellation Runbook
             </h3>
           </div>
-          <p className="text-xs text-rose-900 leading-relaxed font-semibold">
+          <p className="text-xs text-[#1a1a1a]/80 leading-relaxed font-semibold">
             Cancel refundable items in this order before deadlines expire:
           </p>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {sortedBookings
-              .filter(b => b.isRefundable && (b.bookingStatus === 'confirmed' || b.bookingStatus === 'reserved'))
+              .filter(
+                (b) =>
+                  b.isRefundable &&
+                  (b.bookingStatus === 'confirmed' || b.bookingStatus === 'reserved')
+              )
               .map((item, idx) => (
-                <div key={item.id} className="p-4 rounded-2xl glass-card flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-black text-rose-700 uppercase">Priority #{idx + 1}</span>
-                    <h4 className="text-sm font-black text-slate-900">{item.title}</h4>
-                    <p className="text-xs text-slate-500 font-medium">{item.provider}</p>
+                <div
+                  key={item.id}
+                  className="p-4 rounded-xl bg-[#fffdf8] border border-[#1a1a1a]/12 flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <span className="font-mono-fluid text-[10px] font-bold text-[#ef4444] uppercase">
+                      Priority #{idx + 1}
+                    </span>
+                    <h4 className="text-sm font-extrabold text-[#1a1a1a] truncate">
+                      {item.title}
+                    </h4>
+                    <p className="text-xs text-[#1a1a1a]/55 font-medium truncate">
+                      {item.provider}
+                    </p>
                   </div>
-                  <div className="text-right">
-                    <span className="text-sm font-black text-emerald-700 block">
-                      +₹{((item.bookedCostINR ?? item.plannedCostINR) - (item.cancellationFeeINR || 0)).toLocaleString('en-IN')}
+                  <div className="text-right shrink-0">
+                    <span className="text-sm font-extrabold text-[#16a34a] block tabular-nums">
+                      +₹
+                      {(
+                        (item.bookedCostINR ?? item.plannedCostINR) -
+                        (item.cancellationFeeINR || 0)
+                      ).toLocaleString('en-IN')}
                     </span>
                     <button
+                      type="button"
                       onClick={() => toggleItemBookedStatus(item)}
-                      className="mt-1 px-3 py-1 rounded-xl bg-rose-600 text-white font-bold text-[10px]"
+                      className="mt-1 px-3 py-1 rounded-lg bg-[#ef4444] text-white font-bold text-[10px]"
                     >
                       Cancel Now
                     </button>
@@ -653,29 +784,36 @@ export const CancellationRadarView: React.FC<CancellationRadarViewProps> = ({ on
         </div>
       )}
 
-      {/* GetYourGuide Style Horizontal Filter Carousel */}
-      <div className="flex space-x-2.5 overflow-x-auto pb-1 text-xs scrollbar-none">
-        {[
-          { id: 'to_book', label: `⏳ To Book (${pendingItemsCount})` },
-          { id: 'booked', label: `✅ Booked (${bookedItemsCount})` },
-          { id: 'critical', label: '🚨 Critical Cutoff' },
-          { id: 'all', label: `All (${totalItemsCount})` },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => {
-              setFilterType(tab.id as any);
-              setShowAllItems(false);
-            }}
-            className={`px-4 py-2.5 rounded-2xl whitespace-nowrap transition font-black text-xs active:scale-95 shadow-xs ${
-              filterType === tab.id
-                ? 'glass-pill-active'
-                : 'glass-pill text-slate-700 hover:text-slate-900'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Horizontal Filter Bar */}
+      <div className="flex items-center justify-between flex-wrap gap-3 border-b border-[#1a1a1a]/12 pb-3">
+        <div className="flex space-x-2 overflow-x-auto pb-1 text-xs">
+          {[
+            { id: 'to_book', label: `To Book (${pendingItemsCount})` },
+            { id: 'booked', label: `Booked (${bookedItemsCount})` },
+            { id: 'critical', label: 'Critical Cutoff' },
+            { id: 'all', label: `All (${totalItemsCount})` },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                setFilterType(tab.id as 'to_book' | 'booked' | 'critical' | 'all');
+                setShowAllItems(false);
+              }}
+              className={`px-4 py-2 rounded-full whitespace-nowrap transition font-bold text-xs active:scale-95 ${
+                filterType === tab.id
+                  ? 'glass-pill-active'
+                  : 'glass-pill text-[#1a1a1a]/75 hover:text-[#1a1a1a]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <span className="font-mono-fluid text-[11px] text-[#1a1a1a]/50 uppercase tracking-wider">
+          Showing {displayedBookings.length} of {filteredBookings.length}
+        </span>
       </div>
 
       {/* GetYourGuide Style Activity & Travel Cards (Visual Banners + Cancellation Pill) */}

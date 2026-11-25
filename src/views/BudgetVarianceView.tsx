@@ -172,24 +172,38 @@ export const BudgetVarianceView: React.FC = () => {
   const pendingCount = bookings.filter(b => b.bookingStatus === 'not_booked').length;
 
   return (
-    <div className="space-y-6 pb-36 px-5 sm:px-6 pt-5 max-w-xl mx-auto">
-      {/* Top Financial Summary Cards with Large High-Impact Typography */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-6 rounded-[2.2rem] glass-card space-y-2">
-          <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Excel Planned</span>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+    <div className="space-y-6 pb-36 md:pb-16 px-5 sm:px-8 pt-6 max-w-4xl mx-auto">
+      {/* Editorial Section Header */}
+      <div>
+        <p className="font-mono-fluid text-[11px] uppercase tracking-[0.2em] text-[#1a1a1a]/50">
+          Live Spend &amp; Variance Ledger
+        </p>
+        <h1 className="font-gaegu text-4xl sm:text-5xl font-bold leading-none text-[#ff5e3a] -rotate-1 inline-block mt-1">
+          Trip Budget
+        </h1>
+      </div>
+
+      {/* Top Financial Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="p-6 rounded-2xl glass-card space-y-2">
+          <span className="font-mono-fluid text-[11px] font-semibold text-[#1a1a1a]/55 uppercase tracking-[0.15em]">
+            Planned Baseline
+          </span>
+          <div className="text-3xl sm:text-4xl font-extrabold text-[#1a1a1a] tracking-tight tabular-nums">
             ₹{totalPlannedINR.toLocaleString('en-IN')}
           </div>
-          <span className="text-xs text-slate-500 font-bold block">Baseline Budget</span>
+          <span className="text-xs text-[#1a1a1a]/55 font-semibold block">Full 11-day budget</span>
         </div>
 
-        <div className="p-6 rounded-[2.2rem] glass-card space-y-2">
-          <span className="text-xs font-black text-sky-800 uppercase tracking-wider">Booked Total</span>
-          <div className="text-2xl sm:text-3xl font-black text-sky-800 tracking-tight">
+        <div className="p-6 rounded-2xl glass-card space-y-2">
+          <span className="font-mono-fluid text-[11px] font-semibold text-[#ff5e3a] uppercase tracking-[0.15em]">
+            Booked Total
+          </span>
+          <div className="text-3xl sm:text-4xl font-extrabold text-[#1a1a1a] tracking-tight tabular-nums">
             ₹{totalBookedINR.toLocaleString('en-IN')}
           </div>
-          <span className="text-xs text-slate-500 font-bold block">
-            {confirmedCount} confirmed • {reservedCount} reserved
+          <span className="text-xs text-[#1a1a1a]/55 font-semibold block">
+            {confirmedCount} confirmed · {reservedCount} reserved
           </span>
         </div>
       </div>

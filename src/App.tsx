@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TripProvider, useTrip } from './context/TripContext';
 import { MobileHeader } from './components/MobileHeader';
 import { MobileBottomNav, TabType } from './components/MobileBottomNav';
@@ -17,6 +17,17 @@ const MainApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('radar');
   const [isPinModalOpen, setIsPinModalOpen] = useState<boolean>(false);
   const [selectedPassIdForWallet, setSelectedPassIdForWallet] = useState<string | null>(null);
+  const [mapsQuotaExceeded, setMapsQuotaExceeded] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleQuotaExceeded = () => {
+      setMapsQuotaExceeded(true);
+    };
+    window.addEventListener('gmp-quota-exceeded', handleQuotaExceeded);
+    return () => {
+      window.removeEventListener('gmp-quota-exceeded', handleQuotaExceeded);
+    };
+  }, []);
 
   const handleOpenPassFromHandbook = (passId: string) => {
     setSelectedPassIdForWallet(passId);
@@ -24,30 +35,46 @@ const MainApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased relative selection:bg-sky-500 selection:text-white">
-      {/* Dynamic Aurora Ambient Background Orbs with rich pastel saturation so glassmorphic frosted cards pop */}
+    <div className="min-h-screen bg-[#fffbf2] text-[#1a1a1a] flex flex-col font-sans antialiased relative selection:bg-[#ff5e3a] selection:text-white">
+      {/* Variation 9: Organic Fluid Background Blobs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        {/* Top-Right Sky & Cyan glow */}
-        <div className="absolute -top-24 -right-24 w-[480px] h-[480px] rounded-full bg-gradient-to-br from-sky-400/40 via-cyan-400/35 to-blue-300/25 blur-[90px]" />
-        
-        {/* Mid-Left Royal Indigo & Purple glow */}
-        <div className="absolute top-[22%] -left-32 w-[520px] h-[520px] rounded-full bg-gradient-to-tr from-indigo-400/35 via-violet-300/30 to-purple-200/20 blur-[95px]" />
-        
-        {/* Center Aurora Teal & Mint glow */}
-        <div className="absolute top-[55%] -right-28 w-[500px] h-[500px] rounded-full bg-gradient-to-bl from-teal-300/35 via-emerald-300/28 to-cyan-200/20 blur-[100px]" />
-        
-        {/* Bottom-Left Warm Sunset Amber & Rose glow */}
-        <div className="absolute -bottom-28 left-4 w-[460px] h-[460px] rounded-full bg-gradient-to-tr from-amber-300/40 via-rose-300/30 to-orange-200/25 blur-[90px]" />
+        <div
+          className="absolute -top-48 -left-48 w-[760px] h-[760px] rounded-full blur-[110px]"
+          style={{ backgroundColor: '#ff5e3a', opacity: 0.1 }}
+        />
+        <div
+          className="absolute -bottom-32 -right-32 w-[620px] h-[620px] rounded-full blur-[110px]"
+          style={{ backgroundColor: '#4ecdc4', opacity: 0.08 }}
+        />
       </div>
 
-      {/* On-Screen Mobile UI */}
+      {/* On-Screen Mobile & Desktop UI */}
       <div className="print:hidden flex flex-col min-h-screen relative z-10">
-        {/* Mobile Top Frosted Glass Header */}
-        <MobileHeader 
-          onOpenVaultSettings={() => setIsPinModalOpen(true)} 
+        {mapsQuotaExceeded && (
+          <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
+            <span>
+              Google Maps Platform quota reached. If you are the app owner, visit{' '}
+              <a
+                href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-semibold text-amber-950 hover:text-amber-800"
+              >
+                maps developer site
+              </a>{' '}
+              for instructions to update your account.
+            </span>
+          </div>
+        )}
+
+        {/* Top Editorial Fluid Travel Header with Desktop Gaegu Nav */}
+        <MobileHeader
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          onOpenVaultSettings={() => setIsPinModalOpen(true)}
         />
 
-        {/* Main Dynamic View Screen with Natural Native Scrolling */}
+        {/* Main Dynamic View Screen */}
         <main className="flex-1">
           <ErrorBoundary>
             {activeTab === 'radar' && (
@@ -70,10 +97,10 @@ const MainApp: React.FC = () => {
           </ErrorBoundary>
         </main>
 
-        {/* Mobile Floating Frosted Glass Bottom Navigation */}
-        <MobileBottomNav 
-          activeTab={activeTab} 
-          onSelectTab={setActiveTab} 
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
         />
 
         {/* Master PIN / Lock Screen Modal */}

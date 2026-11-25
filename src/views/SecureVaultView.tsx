@@ -106,9 +106,18 @@ export const SecureVaultView: React.FC<SecureVaultViewProps> = ({ onOpenPinModal
   };
 
   return (
-    <div className="space-y-6 pb-36 px-5 sm:px-6 pt-5 max-w-xl mx-auto">
+    <div className="space-y-6 pb-36 md:pb-16 px-5 sm:px-8 pt-6 max-w-4xl mx-auto">
+      <div>
+        <p className="font-mono-fluid text-[11px] uppercase tracking-[0.2em] text-[#1a1a1a]/50">
+          Encrypted Storage · Forex &amp; Emergency Docs
+        </p>
+        <h1 className="font-gaegu text-4xl sm:text-5xl font-bold leading-none text-[#ff5e3a] -rotate-1 inline-block mt-1">
+          Secure Vault
+        </h1>
+      </div>
+
       {/* Security Status Hero Card */}
-      <div className="p-6 sm:p-7 rounded-[2rem] glass-card-elevated space-y-5">
+      <div className="p-6 sm:p-7 rounded-2xl glass-card-elevated space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3.5">
             <div className={`p-3.5 rounded-2xl ${

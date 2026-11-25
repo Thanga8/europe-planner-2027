@@ -217,24 +217,22 @@ export const GoogleWalletPassView: React.FC<GoogleWalletPassViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-36 px-5 sm:px-6 pt-5 max-w-xl mx-auto">
+    <div className="space-y-6 pb-36 md:pb-16 px-5 sm:px-8 pt-6 max-w-4xl mx-auto">
       {/* Header & Add Button */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center space-x-2">
-            <span>Pass Hub</span>
-            <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
-              Turnstile Ready
-            </span>
-          </h2>
-          <p className="text-xs text-slate-500 font-semibold mt-0.5">
-            Boarding passes, train tickets & activity QR codes
+          <p className="font-mono-fluid text-[11px] uppercase tracking-[0.2em] text-[#1a1a1a]/50">
+            Turnstile Ready · Boarding &amp; QR Passes
           </p>
+          <h1 className="font-gaegu text-4xl sm:text-5xl font-bold leading-none text-[#ff5e3a] -rotate-1 inline-block mt-1">
+            Pass Wallet
+          </h1>
         </div>
 
         <button
+          type="button"
           onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center space-x-1.5 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-black text-xs shadow-md active:scale-95 transition"
+          className="flex items-center space-x-1.5 px-4 py-2.5 rounded-xl bg-[#ff5e3a] hover:bg-[#e84f2d] text-white font-extrabold text-xs active:scale-95 transition whitespace-nowrap shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Add Pass</span>

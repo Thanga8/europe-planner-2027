@@ -27,15 +27,28 @@ import {
   formatDuration
 } from '../services/transitNotificationService';
 import { MapStop, getStopsForDay, getBasecampForDay } from '../data/curatedStops';
+import { ItineraryStop } from '../types';
 import { useTrip } from '../context/TripContext';
 
 interface DepartureAssistantCardProps {
   dayNumber: number;
+  customStops?: ItineraryStop[];
 }
 
-export const DepartureAssistantCard: React.FC<DepartureAssistantCardProps> = ({ dayNumber }) => {
+export const DepartureAssistantCard: React.FC<DepartureAssistantCardProps> = ({ dayNumber, customStops }) => {
   const { bookings } = useTrip();
-  const dayStops = getStopsForDay(dayNumber);
+  const dayStops: MapStop[] =
+    customStops && customStops.length > 0
+      ? customStops.map((s) => ({
+          id: s.id,
+          name: s.name,
+          category: s.category === 'food' ? 'activity' : s.category,
+          lat: s.lat,
+          lon: s.lng,
+          time: s.time,
+          address: s.address,
+        }))
+      : getStopsForDay(dayNumber);
   const defaultBasecamp = getBasecampForDay(dayNumber);
 
   // Check if user has an active stay booking for this day with custom hotel name/location
@@ -63,10 +76,9 @@ export const DepartureAssistantCard: React.FC<DepartureAssistantCardProps> = ({ 
   const [testSent, setTestSent] = useState<boolean>(false);
 
   useEffect(() => {
-    // When day changes, reset target stop to first activity of that day
-    const stops = getStopsForDay(dayNumber);
-    const target = stops.find(s => s.category !== 'hotel') || stops[1] || stops[0];
+    const target = dayStops.find(s => s.category !== 'hotel') || dayStops[1] || dayStops[0];
     setSelectedTargetId(target?.id || '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayNumber]);
 
   useEffect(() => {
